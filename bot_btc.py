@@ -10,8 +10,8 @@ from datetime import datetime
 from datetime import timedelta
 from threading import Thread
 
-API_KEY = '412c42f665144a7591ff830e95d3ba15'
-API_SECRET = b'fb41b86d69e14ac1a57abcdebf0880f1'; # b перед ключом не удалять!!!
+API_KEY = '...'
+API_SECRET = b'...'; # b перед ключом не удалять!!!
 API_URL = 'bittrex.com'
 API_VERSION = 'v1.1'
 
