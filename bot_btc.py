@@ -146,35 +146,32 @@ def Bot ():
     if data['success'] :
         i = None
         for i in data['result'] :
-            if ('BTC-' in i['MarketName']) and (i['BaseVolume'] > 3) and (i['Ask'] > 0.00000100):
+            BuYPrice = i['Bid'] + PriceBID
+            SELLPrice = BuYPrice + ((BuYPrice * (MARGIN + FEE)) / 100)
+            if ('BTC-' in i['MarketName']) and (i['BaseVolume'] > 3) and (i['Ask'] > 0.00000100) and (SELLPrice < i['Ask']):
                 Rank = ((i['Ask'] - i['Bid']) / i['Bid']) * i['BaseVolume']
                 RankItem = dict({'Rank':Rank,'Volume':i['BaseVolume'],'Bid':i['Bid'],'Ask':i['Ask'],'MarketName':i['MarketName']})
                 RankList.append(RankItem)
-
         newlist = sorted(RankList, key=lambda k: k['Rank'],reverse=True)
-        count_for_buy = 0
         i = None
         for i in newlist:
-            BuYPrice = i['Bid'] + PriceBID
-            SELLPrice = BuYPrice + ((BuYPrice * (MARGIN + FEE)) / 100)
-            #Spread = ((i['Ask'] * 100) / i['Bid'])-100
-
-            if SELLPrice < i['Ask']:
+            cur = i['MarketName'].split('-')
+            data_bal = call_api(method='/account/getbalance', currency = cur[1])
+            if data_bal['success'] and (data_bal['result']['Available']!=None) and (data_bal['result']['Available']!=0):
+                print('Available: '+str(data_bal['result']['Available']))
                 data_ord = call_api(method='/market/getopenorders', market = i['MarketName'])
                 if data_ord['success']:
                     if len(data_ord['result']) == 0:
+                        BuYPrice = i['Bid'] + PriceBID
+                        SELLPrice = BuYPrice + ((BuYPrice * (MARGIN + FEE)) / 100)
                         order_buy = call_api(method="/market/buylimit", market=i['MarketName'], quantity=QUANTITY/BuYPrice, rate=BuYPrice)
                         if order_buy['success']:
-                            print (i['Volume'])
                             log('Покупаю: количество->'+str(QUANTITY/BuYPrice)+' Цена:'+str('{:.8f}'.format(BuYPrice))+'->'+i['MarketName'])
-                count_for_buy = count_for_buy+1
-                print ('\n'+i['MarketName']+' Rank -> '+str('{:.2f}'.format(i['Rank'])))
-                print ('Volume: '+str('{:.3f}'.format(i['Volume'])))
-                #print ('Spread: '+str('{:.3f}'.format(Spread)))
-                #print ('Buy: '+str('{:.8f}'.format(i['Bid'])))
-                #print ('Sell: '+str('{:.8f}'.format(i['Ask'])))
-                #print ('QUANTITY: '+str('{:.3f}'.format(QUANTITY/BuYPrice)) + '\n')
-        print('\nКоличество пар в списке Buy: '+str(count_for_buy)+' -> Rank:'+str(len(newlist)))
+            Spread = ((i['Ask'] * 100) / i['Bid'])-100
+            print ('\n'+i['MarketName']+' Rank: '+str('{:.2f}'.format(i['Rank'])))
+            print('Spread: '+str(Spread))
+            print ('Volume: '+str('{:.3f}'.format(i['Volume'])))
+        print('\nКоличество пар в списке Buy: '+str(len(newlist)))
     else :
         print (data['message'])
 
