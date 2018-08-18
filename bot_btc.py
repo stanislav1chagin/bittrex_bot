@@ -12,7 +12,7 @@ from threading import Thread
 from termcolor import colored
 
 API_KEY = '...'
-API_SECRET = b'...'; # b перед ключом не удалять!!!
+API_SECRET = b'...' # b перед ключом не удалять!!!
 API_URL = 'bittrex.com'
 API_VERSION = 'v1.1'
 
@@ -20,7 +20,7 @@ API_VERSION = 'v1.1'
 FEE = 0.5               #комиссия биржи за круг купли продажи %
 MARGIN = 1.25           #процент желаемой прибыли %
 PriceBID = 0.00000001   #добавка к цене покупки
-QUANTITY = 0.00110000   #максимальный размер ордера BTC
+QUANTITY = 0.00110000   #максимальный размер ордера $
 DAYS = 14               #время жизни ордера на продажу в днях
 
 USE_LOG = True
@@ -50,21 +50,21 @@ class buy_manager(Thread):
         """Запуск потока"""
         global IS_RUN
         IS_RUN = True
+        print('\nКоличество пар в списке Buy: '+str(len(self.buy_list)))
         data_bal = call_api(method='/account/getbalance', currency = 'BTC')
         if data_bal['success']:
             if (data_bal['result']['Available'] != None) and (data_bal['result']['Available'] != 0) and (data_bal['result']['Available'] > QUANTITY):
-                print('Available: ' + str(data_bal['result']['Available']))
+                print(colored('Balans: ', 'yellow') + str(data_bal['result']['Available']))
                 for i in self.buy_list:
-                    print ('MarketName: '+colored(i['MarketName'], 'yellow'))
+                    print ('MarketName: '+colored(i['MarketName'], 'blue'))
                     data_ord = call_api(method='/market/getopenorders', market = i['MarketName'])
                     if data_ord['success']:
                         if len(data_ord['result']) == 0:
                             BuYPrice = i['Bid'] + PriceBID
                             SELLPrice = BuYPrice + ((BuYPrice * (MARGIN + FEE)) / 100)
                             order_buy = call_api(method="/market/buylimit", market=i['MarketName'], quantity=QUANTITY/BuYPrice, rate=BuYPrice)
-                            if order_buy['success']:
-                                log(colored('Покупаю: количество->', 'green')+str(QUANTITY/BuYPrice)+' Цена:'+str('{:.8f}'.format(BuYPrice))+'->'+colored(i['MarketName'], 'yellow'))
-        print('\nКоличество пар в списке Buy: '+str(len(self.buy_list)))
+                            #if order_buy['success']:
+                                #log(colored('Покупаю: количество->', 'green')+str(QUANTITY/BuYPrice)+' Цена:'+str('{:.8f}'.format(BuYPrice))+'->'+colored(i['MarketName'], 'yellow'))
         IS_RUN = False
 
 
@@ -145,10 +145,10 @@ def closeoporders ():
                         data_buy = json.loads(response.decode('utf-8'))
                         if data_buy['success']:
                             if (i['Limit'] != data_price['result'][0]['Bid'])or(SELLPrice > data_price['result'][0]['Ask'])or(float('{:.8f}'.format(i['Limit']-PriceBID)) != float('{:.8f}'.format(data_buy['result'][1]['Rate']))):
-                                print (colored('отменяю: ', 'red')+str('{:.8f}'.format(SELLPrice))+'>'+str('{:.8f}'.format(data_price['result'][0]['Ask']))+'->'+colored(data_price['result'][0]['MarketName'], 'yellow'))
+                                #print (colored('отменяю: ', 'red')+str('{:.8f}'.format(SELLPrice))+'>'+str('{:.8f}'.format(data_price['result'][0]['Ask']))+'->'+colored(data_price['result'][0]['MarketName'], 'blue'))
                                 cancel_ord = call_api(method='/market/cancel', uuid=i['OrderUuid'])
-                                if cancel_ord['success']:
-                                    log (i['OrderUuid']+'->'+colored(i['Exchange'], 'yellow')+colored('-> отменен', 'red'))
+                                #if cancel_ord['success']:
+                                    #log (i['OrderUuid']+'->'+colored(i['Exchange'], 'blue')+colored('-> отменен', 'red'))
 
 def opensellorder():
     history_ord = call_api(method='/account/getorderhistory') #проверка истории покупок
@@ -164,7 +164,8 @@ def opensellorder():
                             SELLPrice = BuYPrice + ((BuYPrice * (MARGIN + FEE)) / 100)
                             order_sell = call_api(method='/market/selllimit', market=y['Exchange'], quantity=i['Available'], rate=float('{:.8f}'.format(SELLPrice)))
                             if order_sell['success']:
-                                log(colored('Продаю: количество->', 'green') + str(i['Available'])+' Цена:'+str('{:.8f}'.format(SELLPrice))+'->'+colored(y['Exchange'], 'yellow'))
+                                log(colored('Купил: количество->', 'green')+str(QUANTITY/BuYPrice)+' Цена:'+str('{:.8f}'.format(BuYPrice))+'->'+colored(y['Exchange'], 'blue'))
+                                log(colored('Продаю: количество->', 'green') + str(i['Available'])+' Цена:'+str('{:.8f}'.format(SELLPrice))+'->'+colored(y['Exchange'], 'blue'))
 
 def Bot ():
     global IS_RUN
@@ -175,7 +176,7 @@ def Bot ():
         for i in data['result'] :
             BuYPrice = i['Bid'] + PriceBID
             SELLPrice = BuYPrice + ((BuYPrice * (MARGIN + FEE)) / 100)
-            if ('BTC-' in i['MarketName']) and (i['BaseVolume'] > 3) and (i['Ask'] > 0.00000100) and (SELLPrice < i['Ask']):
+            if ('BTC-' in i['MarketName']) and (i['BaseVolume'] > 8) and (i['Ask'] > 0.00000100) and (SELLPrice < i['Ask']):
                 Rank = ((i['Ask'] - i['Bid']) / i['Bid']) * i['BaseVolume']
                 RankItem = dict({'Rank':Rank,'Volume':i['BaseVolume'],'Bid':i['Bid'],'Ask':i['Ask'],'MarketName':i['MarketName']})
                 RankList.append(RankItem)
